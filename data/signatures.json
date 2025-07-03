@@ -1,0 +1,5 @@
+{
+  "cd14_monocytes": ["AIF1", "CST3", "FCN1", "FTH1", "FTL", "GPX1", "LST1", "LYZ", "S100A8", "S100A9", "TYMP"],
+  "b_cells": ["CD37", "CD74", "CD79A", "CD79B", "HLA-DPA1", "HLA-DRA"],
+  "cd56_nk": ["CLIC3", "CST7", "FGFBP2", "GNLY", "GZMA", "GZMB", "HOPX", "IFITM2", "KLRB1", "NKG7", "PRF1"]
+}
