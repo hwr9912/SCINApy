@@ -17,13 +17,13 @@ __version__ = "0.1.0"
 
 
 from .core import SCINA
-# from .visual import plotheat_scina
+from .visual import plotheat_scina
 from .utils import preprocess_signatures, load_sample_data
-# from .interface import run_scina_cli
 
 
 __all__ = [
     "SCINA",
     "preprocess_signatures",
     "load_sample_data",
+    "plotheat_scina"
 ]
