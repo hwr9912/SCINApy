@@ -2,7 +2,6 @@ import re
 import numpy as np
 import pandas as pd
 import scipy as scp
-from scipy.stats import multivariate_normal
 
 """
 SCINA: A Semi-Supervised Category Identification and Assignment Tool.
@@ -58,6 +57,8 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
         # 对低表达基因的表达量取负
         expr[:, adata.var_names.isin(invert_hv_sigs)] *= -1
 
+        del invert_sigs, invert_hv_sigs
+
     # 输入检查
     quality = check_inputs(expr, adata.var_names, signatures, max_iter, convergence_n, convergence_rate,
                            sensitivity_cutoff, log_file)
@@ -99,7 +100,7 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
         # theta[i]['sigma1'] (n celltype, n celltype)
         # theta[i]['sigma2'] (n celltype, n celltype)
         theta.append({
-            'mean': np.vstack([mean_high, mean_low]),
+            'mean': np.vstack([mean_high, mean_low]).T,
             'sigma1': sigma.copy(),
             'sigma2': sigma.copy()
         })
@@ -122,15 +123,18 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
 
             # E step: estimate variables.
             for i in range(len(signatures)):
+                # Python 计算 chol2inv 等效操作
+                chol_matrix = scp.linalg.cholesky(theta[i]['sigma1'], lower=False)  # Cholesky 分解，上三角
+                inv_chol = scp.linalg.inv(chol_matrix)  # 求 Cholesky 矩阵的逆
                 # 对 sigma1 进行 Cholesky 分解，得到下三角因子 L, 之后计算逆矩阵
-                theta[i]['inverse_sigma1'] = np.linalg.inv(np.linalg.cholesky(theta[i]['sigma1']))
+                theta[i]['inverse_sigma1'] = inv_chol @ inv_chol.T
                 theta[i]['inverse_sigma2'] = theta[i]['inverse_sigma1']
 
             for r, (cell_type, markers) in enumerate(signatures.items()):
                 prob_mat[r, :] = tao[r] * density_ratio(
                     e = adata[:, markers].X.toarray().T,
-                    mu1 = theta[r]['mean'][0, :],
-                    mu2 = theta[r]['mean'][1, :],
+                    mu1 = theta[r]['mean'][:, 0],
+                    mu2 = theta[r]['mean'][:, 1],
                     inverse_sigma1 = theta[r]['inverse_sigma1'],
                     inverse_sigma2 = theta[r]['inverse_sigma2']
                 )
@@ -149,14 +153,15 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
                 if keep.any():
                     mean_high[keep] = expr[keep].mean(axis=1)
                     mean_low[keep] = mean_high[keep]
+                theta[i]['mean'] = np.vstack([mean_high, mean_low]).T
 
                 tmp1 = ((expr - mean_high[:, np.newaxis]) ** 2).T
                 tmp2 = ((expr - mean_low[:, np.newaxis]) ** 2).T
 
                 prob_row_r = prob_mat[i][:, np.newaxis]
                 weighted_sum_of_squares = (tmp1 * prob_row_r + tmp2 * (1 - prob_row_r))
-                updated_variances = np.sum(weighted_sum_of_squares, axis=1) / tmp1.shape[1]
-                # tmp1.shape[1] 就是 n_cells
+                updated_variances = np.sum(weighted_sum_of_squares, axis=0) / tmp1.shape[0]
+                # tmp1.shape[0] 就是 n_cells, 取协方差
 
                 # 使用 np.fill_diagonal 更新整个对角线，并应用最小值限制
                 # R: diag(theta[[i]]$sigma1)[diag(theta[[i]]$sigma1)<sigma_min]=sigma_min
@@ -194,7 +199,8 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
     labels = pd.DataFrame(labels, index=adata.obs_names)
 
     cell_labels = ['unknown'] + list(signatures)
-    final_labels = [cell_labels[int(l)] for l in labels.iloc[:, -1]]
+    # 加入了unknown，标签要后移+1
+    final_labels = [cell_labels[int(l) + 1] for l in labels.iloc[:, -1]]
 
     return {
         'cell_labels': final_labels,
@@ -316,22 +322,22 @@ def density_ratio(e, mu1, mu2, inverse_sigma1, inverse_sigma2):
 
     return ratio
 
-if __name__ == "__main__":
-    import json
-    import pandas as pd
-    import anndata as ad
-    from os.path import exists
-    from scipy.sparse import csr_matrix
-    scdata_path = "data/matrix.csv"
-    sigdata_path = "data/signatures.json"
-    # 读取 CSV，假设第一列是基因名，第一行是细胞名，数据为基因×细胞
-    exp = pd.read_csv(scdata_path, index_col=0)
-    adata = ad.AnnData(X=csr_matrix(exp.T))  # 转置为细胞×基因
-    adata.var_names = exp.index
-    adata.obs_names = exp.columns
+# if __name__ == "__main__":
+#     import json
+#     import pandas as pd
+#     import anndata as ad
+#     from os.path import exists
+#     from scipy.sparse import csr_matrix
+#     scdata_path = "data/matrix.csv"
+#     sigdata_path = "data/signatures.json"
+#     # 读取 CSV，假设第一列是基因名，第一行是细胞名，数据为基因×细胞
+#     exp = pd.read_csv(scdata_path, index_col=0)
+#     adata = ad.AnnData(X=csr_matrix(exp.T))  # 转置为细胞×基因
+#     adata.var_names = exp.index
+#     adata.obs_names = exp.columns
 
-    # 读取 JSON，每一列第一行是细胞名，其下每一行都是marker基因名
-    with open(sigdata_path, "r") as json_file:
-        sig = json.load(json_file)
+#     # 读取 JSON，每一列第一行是细胞名，其下每一行都是marker基因名
+#     with open(sigdata_path, "r") as json_file:
+#         sig = json.load(json_file)
 
-    SCINA(adata=adata, signatures=sig)
+#     SCINA(adata=adata, signatures=sig)

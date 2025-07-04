@@ -3,8 +3,6 @@ import pandas as pd
 from scipy.sparse import issparse
 
 
-
-
 def preprocess_signatures(file_path):
     """
     Convert signatures from a CSV file to a list of signature gene lists for SCINA.

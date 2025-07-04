@@ -37,6 +37,7 @@ def load_sample_data():
     """
     scdata_path = "data/matrix.csv"
     sigdata_path = "data/signatures.json"
+    true_label_path = "data/true_label.csv"
     if not exists(sigdata_path):
         raise FileNotFoundError(f"Sample data file {sigdata_path} not found.")
     if not exists(scdata_path):
@@ -51,8 +52,12 @@ def load_sample_data():
     # 读取 JSON，每一列第一行是细胞名，其下每一行都是marker基因名
     with open(sigdata_path, "r") as json_file:
         sig = json.load(json_file)
+    
+    # 读取 CSV，假设第一列是基因名，第一行是细胞名，数据为基因×细胞
+    df = pd.read_csv(true_label_path)
+    true_label = df['vector'].to_list()
 
-    return adata, sig
+    return adata, sig, true_label
 
 __all__ = [
     "SCINA",
