@@ -34,3 +34,4 @@ SCINApy = ["data/*.csv", "data/*.json"]
 
 [tool.setuptools]
 include-package-data = true
+packages = ["SCINApy"]
