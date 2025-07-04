@@ -6,8 +6,9 @@ from .core import SCINA
 from .utils import preprocess_signatures
 from .visual import plotheat_scina
 
-def run_scina_cli():
+def _run_scina_cli():
     """
+    Still debugging!!!
     Command-line interface for SCINA algorithm, similar to EM_interface.R.
     Usage: python -m my_package --data <exp_csv> --signatures <signatures_csv> ...
     """
@@ -55,4 +56,4 @@ def run_scina_cli():
         pickle.dump(results, f)
 
 if __name__ == "__main__":
-    run_scina_cli()
+    _run_scina_cli()

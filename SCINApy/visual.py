@@ -4,8 +4,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
-def plotheat_scina(exp, results, signatures):
+def _plotheat_scina(exp, results, signatures):
     """
+    Still debugging!!!
     Plot a heatmap for SCINA results with signature genes and cell labels.
     
     :param exp: Expression matrix with genes as rows and cells as columns (pandas DataFrame).

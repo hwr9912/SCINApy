@@ -2,6 +2,7 @@ import re
 import numpy as np
 import pandas as pd
 import scipy as scp
+import  anndata as ad
 
 """
 SCINA: A Semi-Supervised Category Identification and Assignment Tool.
@@ -20,20 +21,18 @@ Dependencies:
 - re: For regular expression operations on gene names.
 """
 def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.99,
-          sensitivity_cutoff=1, allow_unknown=True, log_file='SCINA.log'):
+          sensitivity_cutoff=1, allow_unknown=True, log_file='SCINA.log', inplace=False):
     """
     :param adata: AnnData object containing the expression data, where `.X` is the expression matrix and `.var_names` are gene names.
-    :param signatures: Dictionary with string keys (cell types) and values as lists of strings (signature genes, no empty or NaN values), 
-        e.g., {'Glial cell': ['S100a1', 'Mki67', 'Gfap', 'Vim', 'Tnc', 'Egfr', 'Plp1', 'Sox10']}.
+    :param signatures: Dictionary with string keys (cell types) and values as lists of strings (signature genes, no empty or NaN values).
     :param max_iter: Integer > 0, default 100. Maximum iterations allowed for the EM algorithm.
     :param convergence_n: Integer > 0, default 10. Stops the EM algorithm if cell type assignments remain stable for the last n iterations.
     :param convergence_rate: Float between 0 and 1, default 0.99. Percentage of cells with stable type assignments over the last n iterations.
     :param sensitivity_cutoff: Float between 0 and 1, default 1. Cutoff to remove signatures whose cell types are deemed non-existent in the data.
     :param allow_unknown: Boolean, default True. If True, allows cells to be assigned to an 'unknown' category.
     :param log_file: String, default 'SCINA.log'. Path to the file recording the running status of the SCINA algorithm.
-    :return: Dictionary containing:
-        - cell_labels: List of cell type assignments for each cell.
-        - probabilities: Pandas DataFrame with probabilities of each cell belonging to each cell type (including 'unknown' if allowed).
+    :param inplace: Boolean, default False. If True, modifies the input adata object in-place and returns None; if False, returns a new AnnData object with results without modifying the input.
+    :return: None if inplace=True; a new AnnData object with 'scina_labels' in .obs and 'probabilities' in .obsm if inplace=False.
     """
     # 构建日志文件
     with open(log_file, 'w') as f:
@@ -202,11 +201,19 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
     # 加入了unknown，标签要后移+1
     final_labels = [cell_labels[int(l) + 1] for l in labels.iloc[:, -1]]
 
-    return {
-        'cell_labels': final_labels,
-        'probabilities': prob_mat
-    }
-
+    if inplace:
+        # 修改原 adata
+        adata.obs['scina_labels'] = final_labels
+        adata.obsm['probabilities'] = prob_mat.T
+        with open(log_file, 'a') as f:
+            print('Results stored in adata object in-place.', file=f)
+        return None
+    else:
+        # 创建新 adata 对象，不修改原 adata
+        new_adata = ad.AnnData(X=adata.X.copy(), obs=adata.obs.copy(), var=adata.var.copy())
+        new_adata.obs['scina_labels'] = final_labels
+        new_adata.obsm['probabilities'] = prob_mat.T
+        return new_adata
 
 def check_inputs(exp, allgenes, signatures, max_iter, convergence_n, convergence_rate,
                  sensitivity_cutoff, log_file='SCINA.log'):
