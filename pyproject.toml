@@ -9,7 +9,7 @@ description = "A Python package for semi-supervised cell type identification and
 authors = [{name = "Han Wenrui", email = "hwr9912@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.7"
-license = {file = "LICENSE"}
+license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
