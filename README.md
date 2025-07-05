@@ -45,9 +45,21 @@ The SCINA algorithm implemented in this package is based on the methodology orig
 
 ## Documentation
 
-- **PyPI Page**: [SCINApy 0.1.0](https://pypi.org/project/SCINApy/0.1.0/)
+- **PyPI Page**: [SCINApy 0.1.1](https://pypi.org/project/SCINApy/0.1.1/)
 - **Source Code**: [GitHub Repository](https://github.com/hwr9912/SCINApy)
 - **Issues**: [Report Issues](https://github.com/hwr9912/SCINApy/issues)
+
+## Changelog
+
+### [0.1.1] - 2025-07-05
+
+#### Fixed
+
+- Fixed ValueError in SCINA function when no signature genes are found in adata.
+
+### [0.1.0] - 2025-07-04
+
+- Initial release of SCINApy with core SCINA algorithm and visualization tools.
 
 ## License
 

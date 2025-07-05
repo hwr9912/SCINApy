@@ -182,7 +182,7 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
                 with open(log_file, 'a') as f:
                     print('Maximum iterations, breaking out.', file=f)
 
-        dummytest = np.array([np.mean(theta[i]['mean'][0] - theta[i]['mean'][1] == 0) for i in range(len(signatures))])
+        dummytest = np.array([np.mean(theta[i]['mean'][:, 0] - theta[i]['mean'][:, 1] == 0) for i in range(len(signatures))])
         if np.all(dummytest <= sensitivity_cutoff):
             unsatisfied = False
         else:
@@ -243,12 +243,15 @@ def check_inputs(exp, allgenes, signatures, max_iter, convergence_n, convergence
             print('Null cell type signature genes.', file=f)
         quality = 0
     else:
-        # 去除基因集中的空值
+        # 去除基因集中的空值和数据集中没有的基因
         signatures = {k: [g for g in v if g in allgenes] for k, v in signatures.items()}
 
         # 去除全0基因
         std_devs = exp.std(axis=0)
         signatures = {k: [g for g in v if std_devs[g] > 0] for k, v in signatures.items()}
+
+        # 删除值为空列表的键
+        signatures = {k: v for k, v in signatures.items() if v != []}
 
     # 检查其他参数
     if pd.isna(convergence_n):
@@ -322,7 +325,7 @@ def density_ratio(e, mu1, mu2, inverse_sigma1, inverse_sigma2):
     log_det_inv_sigma2 = np.linalg.slogdet(inverse_sigma2)[1]
 
     exponent_term = -0.5 * (tmp1 - log_det_inv_sigma1 - tmp2 + log_det_inv_sigma2)
-    tmp = np.exp(exponent_term)
+    tmp = np.exp(exponent_term, dtype=np.float64)
 
     # 边界条件处理
     ratio = np.clip(tmp, 1e-200, 1e200)
@@ -333,18 +336,31 @@ def density_ratio(e, mu1, mu2, inverse_sigma1, inverse_sigma2):
 #     import json
 #     import pandas as pd
 #     import anndata as ad
-#     from os.path import exists
-#     from scipy.sparse import csr_matrix
-#     scdata_path = "data/matrix.csv"
-#     sigdata_path = "data/signatures.json"
-#     # 读取 CSV，假设第一列是基因名，第一行是细胞名，数据为基因×细胞
-#     exp = pd.read_csv(scdata_path, index_col=0)
-#     adata = ad.AnnData(X=csr_matrix(exp.T))  # 转置为细胞×基因
-#     adata.var_names = exp.index
-#     adata.obs_names = exp.columns
+#     import scanpy as sc
+#     # scdata_path = "data/matrix.csv"
+#     # sigdata_path = "data/signatures.json"
+#     # # 读取 CSV，假设第一列是基因名，第一行是细胞名，数据为基因×细胞
+#     # exp = pd.read_csv(scdata_path, index_col=0)
+#     # adata = ad.AnnData(X=csr_matrix(exp.T))  # 转置为细胞×基因
+#     # adata.var_names = exp.index
+#     # adata.obs_names = exp.columns
+
+#     scdata_path = "/Volumes/MacPassport/project/bioinfo/GSE230692/data/GSE276202_annotated.h5ad"
+#     sigdata_path = "/Volumes/MacPassport/project/bioinfo/GSE230692/data/small_marker_dict.json"
+#     adata = sc.read(scdata_path)
 
 #     # 读取 JSON，每一列第一行是细胞名，其下每一行都是marker基因名
 #     with open(sigdata_path, "r") as json_file:
 #         sig = json.load(json_file)
+    
+#     # # 构建 DataFrame（行名是细胞，列名是基因）
+#     # expr_df = pd.DataFrame(X, index=adata.obs_names, columns=adata.var_names)
 
-#     SCINA(adata=adata, signatures=sig)
+#     # # 把 obs 中的 cell_type 添加到表达矩阵中
+#     # expr_df[group_key] = adata.obs[group_key].values
+
+#     # # 按组取均值，得到 group × genes 的矩阵
+#     # mean_expr = expr_df.groupby(group_key).mean()
+
+#     SCINA(adata=adata, signatures=sig, inplace=True)
+#     print(adata.obs)
