@@ -51,6 +51,12 @@ The SCINA algorithm implemented in this package is based on the methodology orig
 
 ## Changelog
 
+### [0.1.2] - 2025-07-06
+
+#### Fixed
+
+- Fixed ValueError in SCINA function when anndata.X is a numpy.ndarray.
+
 ### [0.1.1] - 2025-07-05
 
 #### Fixed

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SCINApy"
-version = "0.1.1"  # Updated version to fix bug
+version = "0.1.2"  # Updated version to reflect bug fix
 description = "A Python package for semi-supervised cell type identification and assignment using scRNA-seq and Cytof/FACS data."
 authors = [{name = "Han Wenrui", email = "hwr9912@gmail.com"}]
 readme = "README.md"

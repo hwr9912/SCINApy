@@ -44,7 +44,12 @@ def SCINA(adata, signatures, max_iter=100, convergence_n=10, convergence_rate=0.
     # 统计所有特征性低表达标记基因
     invert_sigs = [sig for sig in all_sig if re.match(r'^low_', sig)]
     # 提取表达量矩阵,并转换为稠密矩阵
-    expr = pd.DataFrame(adata.X.toarray(), index=adata.obs_names, columns=adata.var_names)
+    if scp.sparse.issparse(adata.X):
+        expr = pd.DataFrame(adata.X.toarray(), index=adata.obs_names, columns=adata.var_names)
+    elif isinstance(adata.X, np.ndarray):
+        expr = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+    else:
+        raise ValueError("adata.X must be a scipy.sparse matrix or numpy.ndarray")
 
     if invert_sigs:
         with open(log_file, 'a') as f:
@@ -337,30 +342,35 @@ def density_ratio(e, mu1, mu2, inverse_sigma1, inverse_sigma2):
 #     import pandas as pd
 #     import anndata as ad
 #     import scanpy as sc
-#     # scdata_path = "data/matrix.csv"
-#     # sigdata_path = "data/signatures.json"
-#     # # 读取 CSV，假设第一列是基因名，第一行是细胞名，数据为基因×细胞
-#     # exp = pd.read_csv(scdata_path, index_col=0)
-#     # adata = ad.AnnData(X=csr_matrix(exp.T))  # 转置为细胞×基因
-#     # adata.var_names = exp.index
-#     # adata.obs_names = exp.columns
 
-#     scdata_path = "/Volumes/MacPassport/project/bioinfo/GSE230692/data/GSE276202_annotated.h5ad"
-#     sigdata_path = "/Volumes/MacPassport/project/bioinfo/GSE230692/data/small_marker_dict.json"
+#     scdata_path = "/Volumes/MacPassport/project/bioinfo/GSE276202/data/GSE276202_annotated.h5ad"
+#     sigdata_path = "/Volumes/MacPassport/project/bioinfo/GSE276202/data/small_marker_dict.json"
 #     adata = sc.read(scdata_path)
 
 #     # 读取 JSON，每一列第一行是细胞名，其下每一行都是marker基因名
 #     with open(sigdata_path, "r") as json_file:
 #         sig = json.load(json_file)
     
-#     # # 构建 DataFrame（行名是细胞，列名是基因）
-#     # expr_df = pd.DataFrame(X, index=adata.obs_names, columns=adata.var_names)
+#     data_matrix = adata.X.toarray()
+#     # Get Leiden cluster labels
+#     clusters = adata.obs["leiden_res1"].astype(str)
+#     unique_clusters = np.unique(clusters)
 
-#     # # 把 obs 中的 cell_type 添加到表达矩阵中
-#     # expr_df[group_key] = adata.obs[group_key].values
+#     # Initialize matrix for average values
+#     avg_matrix = np.zeros((len(unique_clusters), data_matrix.shape[1]))
 
-#     # # 按组取均值，得到 group × genes 的矩阵
-#     # mean_expr = expr_df.groupby(group_key).mean()
+#     # Compute mean for each cluster
+#     for i, cluster in enumerate(unique_clusters):
+#         mask = clusters == cluster
+#         avg_matrix[i, :] = np.mean(data_matrix[mask, :], axis=0)
 
-#     SCINA(adata=adata, signatures=sig, inplace=True)
-#     print(adata.obs)
+#     # Create new AnnData object
+#     adata_avg = ad.AnnData(
+#         X=avg_matrix,
+#         obs=pd.DataFrame(index=unique_clusters),
+#         var=adata.var.copy()
+#     )
+#     print(adata_avg)
+
+#     SCINA(adata=adata_avg, signatures=sig, inplace=True)
+#     print(adata_avg.obs)
